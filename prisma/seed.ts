@@ -12,7 +12,7 @@ async function main() {
     update: {},
     create: {
       email: adminEmail,
-      name: "Alex Engineering, P.E.",
+      name: "Hussein Haj Hussein",
       role: "ADMIN",
     },
   });
@@ -24,7 +24,7 @@ async function main() {
     create: {
       id: "default-profile",
       userId: adminUser.id,
-      fullName: "Alex Engineering, P.E.",
+      fullName: "Hussein Haj Hussein",
       professionalTitle: "Principal Systems & Project Engineer",
       heroTitle: "ENGINEER.PLATFORM // v1.0",
       heroSubtitle:
