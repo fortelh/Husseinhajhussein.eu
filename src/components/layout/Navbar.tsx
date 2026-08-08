@@ -11,7 +11,6 @@ export function Navbar({ visitor }: { visitor: any }) {
           <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-xs font-mono">
             &gt;_
           </div>
-          <span>Portfolio<span className="text-cyan-400">.sys</span></span>
         </Link>
 
         {/* Profile picture & sign-in / name widget placed on the left */}
