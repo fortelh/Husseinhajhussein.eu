@@ -76,7 +76,7 @@ export default function AdminExperienceClient({ initialExperiences, initialEduca
             Work Experience
           </h2>
           {editingExp && (
-            <Button variant="ghost" size="sm" onClick={() => setEditingExp(null)} className="gap-1 text-slate-400">
+            <Button variant="outline" size="sm" onClick={() => setEditingExp(null)} className="gap-1 text-slate-400">
               <X className="w-4 h-4" /> Cancel Editing
             </Button>
           )}
