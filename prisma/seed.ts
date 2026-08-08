@@ -1,3 +1,4 @@
+```ts
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -5,6 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
   // Create Admin User
   const adminEmail = "admin@engineer.com";
+
   const adminUser = await prisma.user.upsert({
     where: { email: adminEmail },
     update: {},
@@ -25,12 +27,17 @@ async function main() {
       fullName: "Alex Engineering, P.E.",
       professionalTitle: "Principal Systems & Project Engineer",
       heroTitle: "ENGINEER.PLATFORM // v1.0",
-      heroSubtitle: "Specializing in industrial automation, clean power distribution, and enterprise software architecture.",
-      aboutMe: "I have over a decade of hands-on leadership managing multi-megawatt engineering installations and crafting high-availability digital tools.",
+      heroSubtitle:
+        "Specializing in industrial automation, clean power distribution, and enterprise software architecture.",
+      shortIntro:
+        "Principal Systems & Project Engineer specializing in industrial automation, clean power distribution, and enterprise software architecture.",
+      aboutMe:
+        "I have over a decade of hands-on leadership managing multi-megawatt engineering installations and crafting high-availability digital tools.",
       yearsOfExperience: 12,
       currentLocation: "Wuppertal, Germany",
       availabilityStatus: "OPEN_TO_OFFERS",
-      contactEmail: "admin@engineer.com",
+      contactEmail: adminEmail,
+      socialLinks: {},
     },
   });
 
@@ -45,3 +52,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+```
