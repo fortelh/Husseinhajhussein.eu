@@ -3,11 +3,10 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { writeFile, unlink } from "fs/promises";
-import path from "path";
+import cloudinary from "@/lib/cloudinary";
 
-// Helper to handle local multi-file image uploads and database record creation
-async function processUploadedImages(formData: FormData) {
+// Helper to handle multi-file uploads to Cloudinary
+async function processUploadedImages(formData: FormData): Promise<{ mediaId: string }[] | string[]> {
   const files = formData.getAll("images") as File[];
   const mediaIds: string[] = [];
 
@@ -15,22 +14,39 @@ async function processUploadedImages(formData: FormData) {
     if (file && file.size > 0) {
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
-      const filename = `${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
-      const uploadDir = path.join(process.cwd(), "public", "uploads");
 
-      await writeFile(path.join(uploadDir, filename), buffer);
-      const fileUrl = `/uploads/${filename}`;
-
-      // Matches your exact Prisma Media model fields
-      const createdMedia = await prisma.media.create({
-        data: {
-          url: fileUrl,
-          publicId: `${Date.now()}-${Math.random().toString(36).substring(7)}`,
-          type: file.type.startsWith("image/") ? "IMAGE" : "DOCUMENT",
-          altText: file.name,
-        },
+      const uploadedData = await new Promise<{ url: string; publicId: string } | null>((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: "portfolio-projects",
+            resource_type: "auto",
+          },
+          (error, result) => {
+            if (error) {
+              console.error("Cloudinary project upload error:", error);
+              reject(new Error("Failed to upload project image to Cloudinary"));
+            } else if (result) {
+              resolve({
+                url: result.secure_url,
+                publicId: result.public_id,
+              });
+            }
+          }
+        );
+        uploadStream.end(buffer);
       });
-      mediaIds.push(createdMedia.id);
+
+      if (uploadedData) {
+        const createdMedia = await prisma.media.create({
+          data: {
+            url: uploadedData.url,
+            publicId: uploadedData.publicId,
+            type: file.type.startsWith("image/") ? "IMAGE" : "DOCUMENT",
+            altText: file.name,
+          },
+        });
+        mediaIds.push(createdMedia.id);
+      }
     }
   }
 
@@ -49,7 +65,7 @@ export async function createProject(formData: FormData) {
   const technologies = (formData.get("technologies") as string || "").split(",").map(t => t.trim()).filter(Boolean);
   const featured = formData.get("featured") === "on";
 
-  const newMediaIds = await processUploadedImages(formData);
+  const newMediaIds = (await processUploadedImages(formData)) as string[];
 
   await prisma.$transaction(async (tx) => {
     const newProject = await tx.project.create({
@@ -94,7 +110,7 @@ export async function updateProject(projectId: string, formData: FormData) {
   const technologies = (formData.get("technologies") as string || "").split(",").map(t => t.trim()).filter(Boolean);
   const featured = formData.get("featured") === "on";
 
-  const newMediaIds = await processUploadedImages(formData);
+  const newMediaIds = (await processUploadedImages(formData)) as string[];
 
   await prisma.$transaction(async (tx) => {
     await tx.project.update({
@@ -141,12 +157,12 @@ export async function deleteProjectImage(projectMediaId: string, projectId: stri
   if (projectMedia) {
     const mediaRecord = projectMedia.media;
 
-    if (mediaRecord.url.startsWith("/uploads/")) {
+    // If it's stored on Cloudinary and has a valid publicId, you can optionally delete it from Cloudinary too
+    if (mediaRecord.publicId && !mediaRecord.publicId.startsWith("local")) {
       try {
-        const filePath = path.join(process.cwd(), "public", mediaRecord.url);
-        await unlink(filePath);
+        await cloudinary.uploader.destroy(mediaRecord.publicId);
       } catch (err) {
-        console.error("Failed to delete local image file:", err);
+        console.error("Failed to delete image from Cloudinary:", err);
       }
     }
 
