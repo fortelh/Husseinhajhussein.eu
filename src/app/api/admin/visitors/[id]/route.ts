@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const visitorId = cookies().get("visitor_session")?.value;
   const adminCheck = await prisma.visitor.findUnique({ where: { id: visitorId } });
-  if (adminCheck?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (adminCheck?.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { firstName, lastName, mobileNumber, password, isReported, role } = await request.json();
 
