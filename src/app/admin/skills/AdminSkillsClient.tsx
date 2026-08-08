@@ -48,7 +48,7 @@ export default function AdminSkillsClient({ initialSkills }: { initialSkills: an
             {editingSkill ? `Edit Competency: ${editingSkill.name}` : "Add Technical Competency"}
           </h2>
           {editingSkill && (
-            <Button variant="ghost" size="sm" onClick={() => setEditingSkill(null)} className="gap-1 text-slate-400">
+            <Button variant="outline" size="sm" onClick={() => setEditingSkill(null)} className="gap-1 text-slate-400">
               <X className="w-4 h-4" /> Cancel Editing
             </Button>
           )}
