@@ -1,0 +1,6 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+:root {color-scheme: light; } body { background-color: #ff0000; color: #57d051; font-family: var(--font-sans), sans-serif; }

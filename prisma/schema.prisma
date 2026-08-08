@@ -1,0 +1,465 @@
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://neondb_owner:npg_FXObaoIp61ur@ep-raspy-bird-asubqtso.c-4.eu-central-1.aws.neon.tech/neondb?sslmode=require"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum DocCategory {
+  CV
+  CERTIFICATE
+  LICENSE
+  DEGREE
+  OTHER
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  PRIVATE
+}
+
+enum CommentStatus {
+  PENDING
+  APPROVED
+  DELETED
+  REPORTED
+}
+
+enum AvailabilityStatus {
+  AVAILABLE
+  BUSY
+  OPEN_TO_OFFERS
+  NOT_LOOKING
+}
+
+enum MediaType {
+  IMAGE
+  DOCUMENT
+  VIDEO
+  OTHER
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts     Account[]
+  sessions     Session[]
+  profile      Profile?         @relation("AdminProfile")
+  likes        Like[]
+  comments     Comment[]
+  contactMsgs  ContactMessage[]
+  auditLogs    AuditLog[]
+  followers    Follower[]       @relation("UserFollowing")
+  following    Follower[]       @relation("UserFollowers")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Media {
+  id        String    @id @default(cuid())
+  url       String
+  publicId  String    
+  type      MediaType @default(IMAGE)
+  altText   String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  profileAvatar Profile?       @relation("ProfileAvatar")
+  profileCover  Profile?       @relation("ProfileCover")
+  projects      ProjectMedia[]
+  posts         PostMedia[]
+  documents     Document[]
+}
+
+model Profile {
+  id                 String             @id @default(cuid())
+  userId             String             @unique 
+  fullName           String
+  professionalTitle  String
+  heroTitle          String
+  heroSubtitle       String             @db.Text
+  profileImageId     String?            @unique
+  coverImageId       String?            @unique
+  shortIntro         String             @db.Text
+  aboutMe            String             @db.Text
+  yearsOfExperience  Int                @default(0)
+  currentLocation    String
+  availabilityStatus AvailabilityStatus @default(AVAILABLE)
+  contactEmail       String
+  socialLinks        Json               
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  user         User     @relation("AdminProfile", fields: [userId], references: [id], onDelete: Cascade)
+  profileImage Media?   @relation("ProfileAvatar", fields: [profileImageId], references: [id], onDelete: SetNull)
+  coverImage   Media?   @relation("ProfileCover", fields: [coverImageId], references: [id], onDelete: SetNull)
+}
+
+model SeoMetadata {
+  id          String   @id @default(cuid())
+  pageKey     String   @unique 
+  title       String
+  description String   @db.Text
+  keywords    String[]
+  ogImage     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Experience {
+  id          String    @id @default(cuid())
+  company     String
+  position    String
+  location    String
+  startDate   DateTime
+  endDate     DateTime?
+  current     Boolean   @default(false)
+  description String    @db.Text
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([order])
+}
+
+model Education {
+  id           String    @id @default(cuid())
+  institution  String
+  degree       String
+  fieldOfStudy String
+  startDate    DateTime
+  endDate      DateTime?
+  description  String?   @db.Text
+  order        Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([order])
+}
+
+model Skill {
+  id               String   @id @default(cuid())
+  name             String   @unique
+  category         String   
+  description      String?  @db.Text
+  proficiencyLevel Int      
+  yearsOfExperience Float   @default(0.0)
+  icon             String?  
+  featured         Boolean  @default(false)
+  order            Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([category])
+  @@index([order])
+}
+
+model Project {
+  id               String   @id @default(cuid())
+  slug             String   @unique
+  title            String
+  shortDescription String   @db.Text
+  fullDescription  String   @db.Text
+  location         String
+  dateString       String   
+  role             String
+  client           String?
+  projectCapacity  String?      
+  technologies     String[]
+  responsibilities String[]
+  featured         Boolean  @default(false)
+  order            Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  media     ProjectMedia[]
+  documents ProjectDocument[]
+  
+  comments  ProjectComment[]  
+  likes     ProjectLike[]     
+
+  @@index([order])
+  @@index([featured])
+}
+
+model ProjectMedia {
+  id        String   @id @default(cuid())
+  projectId String
+  mediaId   String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  media     Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, mediaId])
+}
+
+model Document {
+  id          String      @id @default(cuid())
+  name        String
+  description String?     @db.Text
+  category    DocCategory @default(CERTIFICATE)
+  mediaId     String      
+  isPublic    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  media       Media               @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  projects    ProjectDocument[]
+
+  @@index([category, isPublic])
+}
+
+model ProjectDocument {
+  id           String      @id @default(cuid())
+  projectId    String
+  documentId   String
+  docType      DocCategory @default(CERTIFICATE)
+  description  String?
+  isPublic     Boolean     @default(true)
+  order        Int         @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  project      Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  document     Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, documentId])
+}
+
+model Post {
+  id          String      @id @default(cuid())
+  slug        String      @unique
+  title       String
+  content     String      @db.Text
+  location    String?
+  status      PostStatus  @default(DRAFT)
+  publishedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  media     PostMedia[]
+  likes     Like[]
+  comments  Comment[]
+
+  @@index([status, publishedAt])
+}
+
+model PostMedia {
+  id        String   @id @default(cuid())
+  postId    String
+  mediaId   String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  media     Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, mediaId])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([postId])
+}
+
+model Comment {
+  id        String        @id @default(cuid())
+  content   String        @db.Text
+  status    CommentStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  userId    String
+  postId    String
+
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, status])
+}
+
+model ContactMessage {
+  id            String   @id @default(cuid())
+  name          String
+  email         String
+  subject       String
+  message       String   @db.Text
+  attachmentUrl String?
+  read          Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([read, createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String   
+  entity    String   
+  entityId  String
+  details   Json?    
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Follower {
+  id         String   @id @default(cuid())
+  userId     String
+  followerId String
+  createdAt  DateTime @default(now())
+
+  user       User     @relation("UserFollowing", fields: [userId], references: [id], onDelete: Cascade)
+  follower   User     @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, followerId])
+}
+
+model AdminUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Visitor {
+  id             String       @id @default(cuid())
+  email          String       @unique
+  password       String?      
+  firstName      String
+  lastName       String
+  dateOfBirth    DateTime?
+  mobileNumber   String?
+  avatarUrl      String?      
+  role           Role         @default(USER)     
+  isReported     Boolean      @default(false)    
+  authProvider   String       @default("email")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  
+  likes        ProjectLike[]
+  comments     ProjectComment[]
+  commentLikes CommentLike[]
+}
+
+model ProjectComment {
+  id        String          @id @default(cuid())
+  content   String          @db.Text
+  isHidden  Boolean         @default(false) 
+  projectId String
+  project   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  visitorId String
+  visitor   Visitor         @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+
+  parentId  String?
+  parent    ProjectComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   ProjectComment[] @relation("CommentReplies")
+
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  likes     CommentLike[]
+  reports   CommentReport[]
+
+  @@index([projectId])
+  @@index([parentId])
+}
+
+model ProjectLike {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  visitorId String
+  visitor   Visitor  @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, visitorId]) 
+  @@index([projectId])
+}
+
+model CommentLike {
+  id        String         @id @default(cuid())
+  commentId String
+  comment   ProjectComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  visitorId String
+  visitor   Visitor        @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+
+  @@unique([commentId, visitorId]) 
+  @@index([commentId])
+}
+
+model CommentReport {
+  id           String         @id @default(cuid())
+  commentId    String
+  comment      ProjectComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  visitorId    String?        
+  reason       String         
+  status       String         @default("pending") 
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([commentId])
+  @@index([status])
+}
