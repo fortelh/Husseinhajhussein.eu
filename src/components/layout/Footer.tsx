@@ -10,11 +10,11 @@ export function Footer() {
           <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
             <Terminal className="w-3.5 h-3.5" />
           </div>
-          <span className="font-bold text-white text-sm">Engineering Portfolio System</span>
+          <span className="font-bold text-white text-sm">Hussein Haj Hussein Portfolio </span>
         </div>
 
         <p className="text-xs text-slate-500 text-center md:text-left">
-          © {new Date().getFullYear()} All rights reserved. Built with Next.js & Prisma.
+          © {new Date().getFullYear()} Code & Coffee ☕. © 2026 Hussein Haj Hussein.
         </p>
 
         <div className="flex items-center gap-4 text-slate-400">
