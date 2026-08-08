@@ -50,7 +50,7 @@ export default function HeaderAuthWidget({ visitor }: { visitor: any }) {
           )
         ) : (
           <span className="text-xs font-bold text-cyan-400">
-            {visitor ? visitor.firstName.charAt(0) : "?"}
+            {visitor ? visitor.firstName.charAt(0) : "👤"}
           </span>
         )}
       </div>
