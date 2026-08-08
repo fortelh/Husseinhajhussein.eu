@@ -2,21 +2,36 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { writeFile } from "fs/promises";
-import path from "path";
+import cloudinary from "@/lib/cloudinary";
 import crypto from "crypto";
 
-async function saveFileToDisk(file: File): Promise<string | null> {
+async function uploadFileToCloudinary(file: File): Promise<{ url: string; publicId: string } | null> {
   if (!file || file.size === 0) return null;
-  
+
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
-  
-  const filename = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
-  const uploadDir = path.join(process.cwd(), "public/uploads");
-  
-  await writeFile(path.join(uploadDir, filename), buffer);
-  return `/uploads/${filename}`;
+
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: "portfolio-documents",
+        resource_type: "auto", // Automatically handles PDFs, images, docs, etc.
+      },
+      (error, result) => {
+        if (error) {
+          console.error("Cloudinary upload error:", error);
+          reject(new Error("Failed to upload file to Cloudinary"));
+        } else if (result) {
+          resolve({
+            url: result.secure_url,
+            publicId: result.public_id,
+          });
+        }
+      }
+    );
+
+    uploadStream.end(buffer);
+  });
 }
 
 export async function createDocument(formData: FormData) {
@@ -29,15 +44,15 @@ export async function createDocument(formData: FormData) {
 
   if (!name) throw new Error("Document Name is required.");
 
-  // If a file was uploaded from device, create a Media record for it first
+  // If a file was uploaded from device, upload it to Cloudinary
   if (file && file.size > 0) {
-    const fileUrl = await saveFileToDisk(file);
-    if (fileUrl) {
+    const uploadedData = await uploadFileToCloudinary(file);
+    if (uploadedData) {
       const newMedia = await prisma.media.create({
         data: {
-          publicId: `local-${crypto.randomUUID()}`,
-          url: fileUrl,
-          type: "DOCUMENT", // or IMAGE/PDF depending on your enum
+          publicId: uploadedData.publicId,
+          url: uploadedData.url,
+          type: "DOCUMENT",
           altText: `${name} file`,
         },
       });
@@ -74,14 +89,14 @@ export async function updateDocument(id: string, formData: FormData) {
 
   if (!name) throw new Error("Document Name is required.");
 
-  // If a new replacement file was uploaded, create a new Media record
+  // If a new replacement file was uploaded, upload it to Cloudinary
   if (file && file.size > 0) {
-    const fileUrl = await saveFileToDisk(file);
-    if (fileUrl) {
+    const uploadedData = await uploadFileToCloudinary(file);
+    if (uploadedData) {
       const newMedia = await prisma.media.create({
         data: {
-          publicId: `local-${crypto.randomUUID()}`,
-          url: fileUrl,
+          publicId: uploadedData.publicId,
+          url: uploadedData.url,
           type: "DOCUMENT",
           altText: `${name} file`,
         },
