@@ -44,7 +44,7 @@ export default function AdminSettingsView({ adminLoginUsers, adminCommunityUsers
 
         {/* Terminate Session Button */}
         <form action={terminateSessionAction}>
-          <Button type="submit" variant="destructive" className="gap-2 bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20">
+          <Button type="submit" variant="danger" className="gap-2 bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20">
             <LogOut className="w-4 h-4" /> Terminate Session
           </Button>
         </form>
