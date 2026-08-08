@@ -200,7 +200,7 @@ export default function AdminExperienceClient({ initialExperiences, initialEduca
             Education & Degrees
           </h2>
           {editingEdu && (
-            <Button variant="ghost" size="sm" onClick={() => setEditingEdu(null)} className="gap-1 text-slate-400">
+            <Button variant="outline" size="sm" onClick={() => setEditingEdu(null)} className="gap-1 text-slate-400">
               <X className="w-4 h-4" /> Cancel Editing
             </Button>
           )}
