@@ -8,9 +8,6 @@ export function Navbar({ visitor }: { visitor: any }) {
       {/* LEFT SIDE: Logo + Sign In / Profile Picture Widget */}
       <div className="flex items-center gap-6">
         <Link href="/" className="flex items-center gap-2 text-white font-bold tracking-tight">
-          <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-xs font-mono">
-            &gt;_
-          </div>
         </Link>
 
         {/* Profile picture & sign-in / name widget placed on the left */}
