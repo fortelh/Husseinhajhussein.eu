@@ -6,16 +6,17 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
 
-  console.log("FULL CALLBACK URL RECEIVED:", req.url);
-  console.log("EXTRACTED CODE:", code);
-  console.log("NEXT_PUBLIC_APP_URL:", process.env.NEXT_PUBLIC_APP_URL);
-  
+  // Dynamically extract the protocol and host from the incoming request (e.g., https://husseinhajhussein.eu)
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
+  const protocol = req.headers.get("x-forwarded-proto") || "https";
+  const baseUrl = `${protocol}://${host}`;
+
   if (!code) {
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/?error=linkedin_auth_failed`);
+    return NextResponse.redirect(`${baseUrl}/?error=linkedin_auth_failed`);
   }
 
   try {
-    // 1. Exchange code for access token
+    // 1. Exchange code for access token using the dynamic redirect URI
     const tokenRes = await fetch("https://www.linkedin.com/oauth/v2/accessToken", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -24,7 +25,7 @@ export async function GET(req: Request) {
         code,
         client_id: process.env.LINKEDIN_CLIENT_ID!,
         client_secret: process.env.LINKEDIN_CLIENT_SECRET!,
-        redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/visitor/auth/linkedin/callback`,
+        redirect_uri: `${baseUrl}/api/visitor/auth/linkedin/callback`,
       }),
     });
 
@@ -68,9 +69,9 @@ export async function GET(req: Request) {
       maxAge: 60 * 60 * 24 * 7,
     });
 
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/?success=logged_in`);
+    return NextResponse.redirect(`${baseUrl}/?success=logged_in`);
   } catch (error) {
     console.error("LinkedIn OAuth error:", error);
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/?error=server_error`);
+    return NextResponse.redirect(`${baseUrl}/?error=server_error`);
   }
 }
