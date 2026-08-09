@@ -6,7 +6,6 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
 
-  // Dynamically extract the protocol and host (e.g., https://husseinhajhussein.eu)
   const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
   const protocol = req.headers.get("x-forwarded-proto") || "https";
   const baseUrl = `${protocol}://${host}`;
@@ -16,7 +15,6 @@ export async function GET(req: Request) {
   }
 
   try {
-    // 1. Exchange code for tokens using the dynamic redirect URI
     const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -30,9 +28,12 @@ export async function GET(req: Request) {
     });
 
     const tokenData = await tokenRes.json();
-    if (!tokenData.access_token) throw new Error("Failed to fetch Google access token");
+    
+    if (!tokenData.access_token) {
+      console.error("GOOGLE TOKEN API ERROR:", JSON.stringify(tokenData));
+      throw new Error("Failed to fetch Google access token");
+    }
 
-    // 2. Fetch user profile from Google
     const userRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     });
@@ -42,7 +43,6 @@ export async function GET(req: Request) {
       throw new Error("Google account has no email address");
     }
 
-    // 3. Find or create visitor in Prisma database
     let visitor = await prisma.visitor.findUnique({ where: { email: googleUser.email } });
 
     if (!visitor) {
@@ -57,7 +57,6 @@ export async function GET(req: Request) {
       });
     }
 
-    // 4. Set the visitor session cookie
     const cookieStore = await cookies();
     cookieStore.set({
       name: "visitor_session",
@@ -65,7 +64,7 @@ export async function GET(req: Request) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 1 week
+      maxAge: 60 * 60 * 24 * 7,
     });
 
     return NextResponse.redirect(`${baseUrl}/?success=logged_in`);
