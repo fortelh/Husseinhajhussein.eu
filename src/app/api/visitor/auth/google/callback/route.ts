@@ -6,12 +6,17 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
 
+  // Dynamically extract the protocol and host (e.g., https://husseinhajhussein.eu)
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
+  const protocol = req.headers.get("x-forwarded-proto") || "https";
+  const baseUrl = `${protocol}://${host}`;
+
   if (!code) {
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/?error=google_auth_failed`);
+    return NextResponse.redirect(`${baseUrl}/?error=google_auth_failed`);
   }
 
   try {
-    // 1. Exchange code for tokens
+    // 1. Exchange code for tokens using the dynamic redirect URI
     const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -19,7 +24,7 @@ export async function GET(req: Request) {
         code,
         client_id: process.env.GOOGLE_CLIENT_ID!,
         client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-        redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/visitor/auth/google/callback`,
+        redirect_uri: `${baseUrl}/api/visitor/auth/google/callback`,
         grant_type: "authorization_code",
       }),
     });
@@ -52,7 +57,7 @@ export async function GET(req: Request) {
       });
     }
 
-    // 4. Set the visitor session cookie (matching your existing auth setup)
+    // 4. Set the visitor session cookie
     const cookieStore = await cookies();
     cookieStore.set({
       name: "visitor_session",
@@ -63,9 +68,9 @@ export async function GET(req: Request) {
       maxAge: 60 * 60 * 24 * 7, // 1 week
     });
 
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/?success=logged_in`);
+    return NextResponse.redirect(`${baseUrl}/?success=logged_in`);
   } catch (error) {
     console.error("Google OAuth error:", error);
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/?error=server_error`);
+    return NextResponse.redirect(`${baseUrl}/?error=server_error`);
   }
 }
