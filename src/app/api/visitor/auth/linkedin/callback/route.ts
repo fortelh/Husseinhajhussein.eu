@@ -6,6 +6,10 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
 
+  console.log("FULL CALLBACK URL RECEIVED:", req.url);
+  console.log("EXTRACTED CODE:", code);
+  console.log("NEXT_PUBLIC_APP_URL:", process.env.NEXT_PUBLIC_APP_URL);
+  
   if (!code) {
     return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/?error=linkedin_auth_failed`);
   }
